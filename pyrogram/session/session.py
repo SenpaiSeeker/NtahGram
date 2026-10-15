@@ -762,7 +762,7 @@ class Session:
                     )
                 except asyncio.TimeoutError:
                     raise TimeoutError(
-                        f'Waited {self.WAIT_TIMEOUT + self.STARTING_GRACE_TIMEOUT}s'
+                        f"Waited {self.WAIT_TIMEOUT + self.STARTING_GRACE_TIMEOUT}s"
                         f' to invoke "{query_name}", and {self} is still starting'
                     ) from e
             else:
