@@ -2410,7 +2410,12 @@ class Message(Object, Update):
                 parsed_message.reply_to_message = await client.message_cache.get(key)
 
                 if client.fetch_replies and not parsed_message.reply_to_message:
-                    with contextlib.suppress(ChannelPrivate, ChannelInvalid, MessageIdsEmpty):
+                    with contextlib.suppress(
+                        ChannelPrivate,
+                        ChannelInvalid,
+                        MessageIdsEmpty,
+                        OSError,
+                    ):
                         # `reply_to_params` holds a valid `(chat_id, message_ids)` or
                         #  `(chat_id, reply=True)` shape per branch above; a dict unpack
                         #  cannot be matched against the overloads statically.
