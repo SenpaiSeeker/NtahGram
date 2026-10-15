@@ -94,6 +94,7 @@ class Session:
     START_TIMEOUT = 2
     STOP_TIMEOUT = 2
     WAIT_TIMEOUT = 15
+    STARTING_GRACE_TIMEOUT = 45
     SLEEP_THRESHOLD = 10
     MAX_RETRIES = 10
     ACKS_THRESHOLD = 10
@@ -752,14 +753,25 @@ class Session:
 
         try:
             await asyncio.wait_for(self.is_started.wait(), self.WAIT_TIMEOUT)
-
-        # Carrying on instead reaches `send()`, which reads `self.connection.protocol` on a
-        #  session whose `connection` is still `None`: `AttributeError: 'NoneType' object has
-        #  no attribute 'protocol'`, naming neither the session nor the query.
         except asyncio.TimeoutError as e:
-            raise TimeoutError(
-                f'Waited {self.WAIT_TIMEOUT}s to invoke "{query_name}", and {self} is not started'
-            ) from e
+            if self._state is SessionState.STARTING:
+                try:
+                    await asyncio.wait_for(
+                        self.is_started.wait(),
+                        self.STARTING_GRACE_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    raise TimeoutError(
+                        f'Waited {self.WAIT_TIMEOUT + self.STARTING_GRACE_TIMEOUT}s'
+                        f' to invoke "{query_name}", and {self} is still starting'
+                    ) from e
+            else:
+                # Carrying on instead reaches `send()`, which reads `self.connection.protocol`
+                #  on a session whose `connection` is still `None`: `AttributeError: 'NoneType'
+                #  object has no attribute 'protocol'`, naming neither the session nor the query.
+                raise TimeoutError(
+                    f'Waited {self.WAIT_TIMEOUT}s to invoke "{query_name}", and {self} is not started'
+                ) from e
 
         for attempt in range(1, retries + 1):
             try:
