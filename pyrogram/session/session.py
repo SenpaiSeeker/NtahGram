@@ -197,9 +197,26 @@ class Session:
         task = asyncio.create_task(coroutine)
 
         self.pending_tasks.add(task)
-        task.add_done_callback(self.pending_tasks.discard)
+        task.add_done_callback(self._tracked_task_done)
 
         return task
+
+    def _tracked_task_done(self, task: asyncio.Task) -> None:
+        self.pending_tasks.discard(task)
+
+        try:
+            error = task.exception()
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            return
+
+        if error is not None:
+            log.debug(
+                "Tracked task ended with %s: %s",
+                type(error).__name__,
+                error,
+            )
 
     async def _wait_pending_tasks(self) -> None:
         # A tracked `handle_packet` spawns a tracked `handle_updates`, so one round can

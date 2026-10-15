@@ -577,6 +577,7 @@ class Dispatcher:
         finally:
             if not handled:
                 log.error(
-                    f"Unexpected exception raised in {type(update_handler).__name__}:",
+                    f"Unexpected {type(exc).__name__} raised in "
+                    f"{type(update_handler).__name__}: {exc}",
                     exc_info=(type(exc), exc, exc.__traceback__),
                 )
